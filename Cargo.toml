@@ -1,0 +1,15 @@
+[package]
+name = "fractus"
+description = "Cryptographic attack library for rust and python"
+authors = ["GlacierSG", "GlacierSG <iamglaciersg@gmail.com>"]
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+pyo3 = { version = "0.20.3", features = ["extension-module"], optional = true}
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[features]
+python = ["pyo3/extension-module"]
