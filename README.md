@@ -12,10 +12,10 @@ let m = b"abc";
 let h = sha2_256::compute(&m);
 let e = b"cde";
 let mut c = m.to_vec();
-c.extend(sha2_256::padding(m.len()))
-    .extend(e);
+c.extend(sha2_256::padding(m.len()));
+c.extend(e);
 let e = sha2_256::extend(&h, m.len(), e);
-assert_eq!(ext, sha2_256::compute(c));
+assert_eq!(e, sha2_256::compute(c));
 ```
 
 ### Python
@@ -33,7 +33,8 @@ assert sha2_256.extend(h, len(m), e) == sha2_256.compute(m + sha2_256.padding(le
 `cargo test`
 ### Python
 in a python virtual environment:
-`maturin build --features python`
+
+`maturin develop --features python`
 
 ## Features
 ### Length Extension Attack
