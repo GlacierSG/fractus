@@ -11,5 +11,5 @@ pub mod sha2_512;
 pub mod whirlpool;
 
 
-#[cfg(feature = "python")]
+#[cfg(feature = "pyo3")]
 pub(crate) mod py;

@@ -5,6 +5,7 @@ Fractus is a cryptographic attack library written in rust. It is also available 
 ## Run
 ### Rust
 `cargo add fractus`
+
 ```rust
 use fractus::sha2_256;
 
@@ -20,32 +21,14 @@ assert_eq!(e, sha2_256::compute(c));
 
 ### Python
 `pip install fractus`
+
 ```python
 from fractus import sha2_256
 
-m = b'secret'+b'abc'
+m = b'secret' + b'abc'
 h = sha2_256.compute(m)
 e = b'test'
 assert sha2_256.extend(h, len(m), e) == sha2_256.compute(m + sha2_256.padding(len(m)) + e)
-```
-
-## Develop
-### Rust
-`cargo test`
-### Python
-in a python virtual environment:
-
-`maturin develop --features python`
-
-`pip install .`
-
-#### Publish
-```bash
-docker run --rm -it --entrypoint bash -v $(pwd):/io ghcr.io/pyo3/maturin
-mkdir /fractus
-cp -r /io/* /fractus
-cd /fractus
-maturin publish --features python -u __token__
 ```
 
 ## Features

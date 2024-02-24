@@ -1,6 +1,6 @@
 pub mod hash;
 
-#[cfg(feature = "python")]
+#[cfg(feature = "pyo3")]
 pub mod py;
 
 pub use hash::md4;

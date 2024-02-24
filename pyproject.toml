@@ -7,7 +7,7 @@ requires = ["maturin>=1.0,<2.0"]
 build-backend = "maturin"
 
 [tool.maturin]
-features = ["python"]
+features = ["pyo3/extension-module"]
 module-name = "fractus.fractus"
 python-source = "python"
 strip = true
