@@ -19,6 +19,7 @@ assert_eq!(e, sha2_256::compute(c));
 ```
 
 ### Python
+`pip install fractus`
 ```python
 from fractus import sha2_256
 
@@ -35,6 +36,17 @@ assert sha2_256.extend(h, len(m), e) == sha2_256.compute(m + sha2_256.padding(le
 in a python virtual environment:
 
 `maturin develop --features python`
+
+`pip install .`
+
+#### Publish
+```bash
+docker run --rm -it --entrypoint bash -v $(pwd):/io ghcr.io/pyo3/maturin
+mkdir /fractus
+cp -r /io/* /fractus
+cd /fractus
+maturin publish --features python -u __token__
+```
 
 ## Features
 ### Length Extension Attack
