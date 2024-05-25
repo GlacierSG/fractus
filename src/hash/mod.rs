@@ -6,6 +6,7 @@ pub mod ripemd256;
 pub mod ripemd320;
 pub mod sha0;
 pub mod sha1;
+pub mod sha2_224;
 pub mod sha2_256;
 pub mod sha2_512;
 pub mod whirlpool;

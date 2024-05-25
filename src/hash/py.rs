@@ -46,6 +46,6 @@ macro_rules! make_py_func {
 }
 
 make_py_func!(
-    md4, md5, ripemd128, ripemd160, ripemd256, ripemd320, sha0, sha1, sha2_256, sha2_512, whirlpool
+    md4, md5, ripemd128, ripemd160, ripemd256, ripemd320, sha0, sha1, sha2_224, sha2_256, sha2_512, whirlpool
 );
 
