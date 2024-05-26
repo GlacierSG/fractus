@@ -1,7 +1,20 @@
 use pyo3::prelude::*;
-use pyo3::types::PyBytes;
+use pyo3::types::{PyBytes, PyString, PyAny};
 use pyo3::wrap_pyfunction;
 
+fn inp_to_bytes(obj: &PyAny) -> PyResult<Vec<u8>> {
+    if obj.is_instance_of::<PyString>() {
+        let s: String = obj.extract()?;
+        Ok(s.as_bytes().to_vec())
+    } else if obj.is_instance_of::<PyBytes>() {
+        let b: Vec<u8> = obj.extract()?;
+        Ok(b)
+    } else {
+        Err(PyErr::new::<pyo3::exceptions::PyTypeError, _>(
+            "Expected a string or bytes object",
+        ))
+    }
+}
 
 macro_rules! make_py_func {
     ($($name:ident),*) => {
@@ -10,13 +23,15 @@ macro_rules! make_py_func {
                 let $name = PyModule::new(py, stringify!($name))?;
 
                 #[pyfunction]
-                fn compute(py: Python, data: &[u8]) -> PyResult<Py<PyBytes>> {
+                fn compute(py: Python, data: &PyAny) -> PyResult<Py<PyBytes>> {
+                    let data = inp_to_bytes(&data)?;
                     let out = crate::hash::$name::compute(data);
                     Ok(PyBytes::new(py, &out).into())
                 }
 
                 #[pyfunction]
                 fn extend(py: Python, original_hash: &[u8], original_size: usize, extended_data: &[u8]) -> PyResult<Py<PyBytes>> {
+                    let extended_data = inp_to_bytes(&extended_data)?;
                     let out = crate::hash::$name::extend(original_hash.try_into().expect("Wrong original_hash size"), 
                         original_size, 
                         extended_data);
