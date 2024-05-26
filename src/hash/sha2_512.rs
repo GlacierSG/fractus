@@ -80,6 +80,7 @@ impl Sha2_512 {
     }
 
     fn transform(&mut self) {
+        // Credit https://github.com/printfn/extendhash/
         let mut w = [0u64; 80];
         for i in 0..80 {
             if i < 16 {

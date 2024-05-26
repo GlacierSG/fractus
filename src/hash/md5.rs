@@ -62,6 +62,7 @@ impl Md5 {
     }
 
     fn transform(&mut self) {
+        // Credit https://github.com/printfn/extendhash/
         let [mut a, mut b, mut c, mut d] = self.state;
         for i in 0..64 {
             let (e, j) = match i {

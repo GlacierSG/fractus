@@ -60,8 +60,9 @@ impl Sha2_256 {
     }
 
     fn transform(&mut self) {
-        let mut w = [0u32; 80];
-        for i in 0..80 {
+        // Credit https://github.com/printfn/extendhash/
+        let mut w = [0u32; 64];
+        for i in 0..64 {
             if i < 16 {
                 w[i] = self.block[i];
             } else {

@@ -60,6 +60,7 @@ impl Sha2_224 {
     }
 
     fn transform(&mut self) {
+        // Credit: https://github.com/printfn/extendhash/
         let mut w = [0u32; 80];
         for i in 0..80 {
             if i < 16 {
@@ -148,6 +149,8 @@ pub fn padding(data_len: usize) -> Vec<u8> {
 }
 
 /// Compute sha2_224 length extension attack
+/// 
+/// You need to brute force the last 4 bytes of the sha2_224 hash
 pub fn extend(
     original_hash: &[u8; 32],
     original_size: usize,
