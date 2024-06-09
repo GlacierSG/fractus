@@ -124,14 +124,14 @@ pub fn compute(data: impl AsRef<[u8]>) -> [u8; 20] {
 pub fn extend(
     original_hash: &[u8; 20],
     original_size: usize,
-    extended_data: impl AsRef<[u8]>,
+    extend_data: impl AsRef<[u8]>,
 ) -> [u8; 20] {
     let mut m = Sha0::from(&original_hash);
 
     let pad_length: usize = padding_len(original_size);
     m.size = original_size + pad_length;
 
-    m.update(extended_data);
+    m.update(extend_data);
     m.finalize()
 }
 

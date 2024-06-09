@@ -30,11 +30,11 @@ macro_rules! make_py_func {
                 }
 
                 #[pyfunction]
-                fn extend(py: Python, original_hash: &[u8], original_size: usize, extended_data: &[u8]) -> PyResult<Py<PyBytes>> {
-                    let extended_data = inp_to_bytes(&extended_data)?;
+                fn extend(py: Python, original_hash: &[u8], original_size: usize, extend_data: &PyAny) -> PyResult<Py<PyBytes>> {
+                    let extend_data = inp_to_bytes(&extend_data)?;
                     let out = crate::hash::$name::extend(original_hash.try_into().expect("Wrong original_hash size"), 
                         original_size, 
-                        extended_data);
+                        extend_data);
                     Ok(PyBytes::new(py, &out).into())
                 }
 
@@ -63,4 +63,6 @@ macro_rules! make_py_func {
 make_py_func!(
     md4, md5, ripemd128, ripemd160, ripemd256, ripemd320, sha0, sha1, sha2_224, sha2_256, sha2_512, whirlpool
 );
+
+
 

@@ -37,8 +37,8 @@ assert sha2_256.extend(h, len(m), e) == sha2_256.compute(m + sha2_256.padding(le
 - [x] MD5
 - [x] SHA0
 - [x] SHA1
-- [x] SHA2_256
 - [x] SHA2_224
+- [x] SHA2_256
 - [x] SHA2_512
 - [x] Ripemd128
 - [x] Ripemd160

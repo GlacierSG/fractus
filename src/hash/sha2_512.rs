@@ -174,14 +174,14 @@ pub fn compute(data: impl AsRef<[u8]>) -> [u8; 64] {
 pub fn extend(
     original_hash: &[u8; 64],
     original_size: usize,
-    extended_data: impl AsRef<[u8]>,
+    extend_data: impl AsRef<[u8]>,
 ) -> [u8; 64] {
     let mut m = Sha2_512::from(&original_hash);
 
     let pad_length: usize = padding_len(original_size);
     m.size = original_size + pad_length;
 
-    m.update(extended_data);
+    m.update(extend_data);
     m.finalize()
 }
 

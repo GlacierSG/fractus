@@ -1,5 +1,5 @@
 use pyo3::prelude::*;
-use super::hash::py::hash;
+use crate::hash::py::hash;
 use std::process;
 
 #[pymodule]

@@ -128,14 +128,14 @@ pub fn compute(data: impl AsRef<[u8]>) -> [u8; 16] {
 pub fn extend(
     original_hash: &[u8; 16],
     original_size: usize,
-    extended_data: impl AsRef<[u8]>,
+    extend_data: impl AsRef<[u8]>,
 ) -> [u8; 16] {
     let mut m = Md5::from(&original_hash);
 
     let pad_length: usize = padding_len(original_size);
     m.size = original_size + pad_length;
 
-    m.update(extended_data);
+    m.update(extend_data);
     m.finalize()
 }
 

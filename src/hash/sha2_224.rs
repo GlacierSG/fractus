@@ -1,3 +1,8 @@
+use std::sync::Mutex;
+use std::sync::Arc;
+use std::marker::Sync;
+use rayon::prelude::*;
+
 #[derive(Clone)]
 pub struct Sha2_224 {
     state: [u32; 8],
@@ -102,13 +107,13 @@ impl Sha2_224 {
         self.state = [0, 1, 2, 3, 4, 5, 6, 7].map(|i| self.state[i].wrapping_add(h[i]));
     }
 
-    pub fn finalize(&mut self) -> [u8; 32] {
+    pub fn finalize(&mut self) -> [u8; 28] {
         let pad = padding(self.size);
         self.update(&pad);
 
-        let mut digest = [0u8; 32];
+        let mut digest = [0u8; 28];
         let mut j = 0;
-        for i in 0..8 {
+        for i in 0..7 {
             [digest[j], digest[j + 1], digest[j + 2], digest[j + 3]] = self.state[i].to_be_bytes();
             j += 4;
         }
@@ -154,15 +159,47 @@ pub fn padding(data_len: usize) -> Vec<u8> {
 pub fn extend(
     original_hash: &[u8; 32],
     original_size: usize,
-    extended_data: impl AsRef<[u8]>,
-) -> [u8; 32] {
+    extend_data: impl AsRef<[u8]>,
+) -> [u8; 28] {
     let mut m = Sha2_224::from(&original_hash);
 
     let pad_length: usize = padding_len(original_size);
     m.size = original_size + pad_length;
 
-    m.update(extended_data);
+    m.update(extend_data);
     m.finalize()
+}
+
+/// Compute sha2_224 length extension attack
+pub fn extend_par<F>(
+    original_hash: &[u8; 28],
+    original_size: usize,
+    extend_data: impl AsRef<[u8]>,
+    check_fn: F,
+) -> Vec<[u8; 28]>
+where 
+    F: Fn(&[u8; 28]) -> bool + Sync {
+    let extend_data = extend_data.as_ref();
+    
+    let results = Arc::new(Mutex::new(Vec::new()));
+
+    (0u8..=255).into_par_iter().for_each(|c1| {
+        for c2 in 0..=255 {
+            for c3 in 0..=255 {
+                for c4 in 0..=255 {
+                    let hash: &mut [u8; 32] = &mut [0; 32];
+                    hash[..28].copy_from_slice(&original_hash[..]);
+                    hash[28..].copy_from_slice(&[c1, c2, c3, c4]);
+                    let ext_hash = extend(&hash, original_size, extend_data);
+
+                    if check_fn(&ext_hash) {
+                        results.lock().unwrap().push(ext_hash);
+                    }
+                }
+            }
+        }
+    });
+    Arc::try_unwrap(results).unwrap().into_inner().unwrap()
 }
 
 #[cfg(test)]
