@@ -10,10 +10,17 @@ version = "0.1.9"
 edition = "2021"
 
 [dependencies]
+amalie = "0.1.0"
+colored = "2.1.0"
 ctrlc = "3.4.4"
 itertools = "0.13.0"
-pyo3 = { version = "0.22.0", features = ["extension-module"], optional = true}
+num-bigint = "0.4.6"
+pem = "3.0.4"
+pyo3 = { version = "0.22.0", features = ["extension-module", "num-bigint"], optional = true}
 rayon = "1.10.0"
+rsa = "0.9.6"
+thiserror = "1.0.63"
+x509-parser = "0.16.0"
 
 [lib]
 crate-type = ["cdylib", "lib"]

@@ -5,5 +5,5 @@ Cargo.lock
 **/*.rs.bk
 *.pdb
 
-.env/
+venv/
 .vscode/
