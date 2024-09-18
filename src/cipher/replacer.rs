@@ -6,7 +6,6 @@ use std::fmt;
 pub struct Replacer {
     pub tokens: Vec<String>,
     pub map: HashMap<String, String>,
-    pub alphabet: Vec<String>,
 }
 
 
@@ -19,7 +18,7 @@ impl fmt::Display for Replacer {
                 write!(f, "{}", c)?;
             }
         }
-        writeln!(f)
+        Ok(())
     }
 }
 
@@ -28,7 +27,6 @@ impl Replacer {
         Self {
             tokens: vec![],
             map: HashMap::new(),
-            alphabet: vec![],
         }
     }
     pub fn tokens(&mut self, v: impl Borrow<str>) {
@@ -44,22 +42,12 @@ impl Replacer {
 
         self.map.insert(lhs.to_string(), rhs.to_string());
     }
-    pub fn alphabet(&mut self, token: impl Borrow<str>) {
-        let token = token.borrow();
-
-        for c in token.chars() {
-            self.alphabet.push(c.to_string());
-        }
-    }
-    pub fn ceasar(&mut self, key: i32) {
-        if self.alphabet.len() == 0 {
-            panic!("missing alphabet");
-        }
-        for i in 0..self.alphabet.len() {
-            let l = self.alphabet.len() as i32;
+    pub fn caesar(&mut self, alphabet: String, key: i32) {
+        for i in 0..alphabet.len() {
+            let l = alphabet.len() as i32;
             let a: usize = ((key % l) + l).try_into().unwrap();
-            let new_i: usize = (i + a) % self.alphabet.len();
-            self.map.insert(self.alphabet[i].clone(), self.alphabet[new_i].clone());
+            let new_i: usize = (i + a) % alphabet.len();
+            self.map.insert(alphabet.chars().nth(i).unwrap().to_string(), alphabet.chars().nth(new_i).unwrap().to_string());
         }
     }
     pub fn result(&self) -> String {

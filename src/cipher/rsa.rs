@@ -1,9 +1,10 @@
-use amalie::{zz, ZZ, alg::totient, alg::continued_fraction, alg::gcd};
+use amalie::{zz, ZZ, totient, continued_fraction, gcd, egcd, mod_inv};
 use crate::{Error, Result};
 use ::pem::parse;
 use x509_parser::prelude::*;
 use rsa::{RsaPublicKey, RsaPrivateKey, pkcs1::{DecodeRsaPublicKey, DecodeRsaPrivateKey}};
 use rsa::traits::{PublicKeyParts, PrivateKeyParts};
+use std::fmt;
 
 /// Factor using n and phi when n is factored into 2 primes
 pub fn factor_with_phi_2(n: &ZZ, phi: &ZZ) -> (ZZ, ZZ) {
@@ -70,6 +71,8 @@ pub fn fermat_attack(n: impl AsRef<ZZ>) -> (ZZ, ZZ) {
 
 
 pub struct Rsa {
+    pub pt: Option<ZZ>,
+    pub ct: Option<ZZ>,
     pub n: Option<ZZ>,
     pub e: Option<ZZ>,
     pub d: Option<ZZ>,
@@ -77,33 +80,97 @@ pub struct Rsa {
     //pub qinv: Option<ZZ>,
     pub phi: Option<ZZ>,
     pub factors: Option<Vec<ZZ>>,
+    pub autofill: bool
 }
+
+impl Rsa {
+    pub fn to_string(&self) -> String {
+        let mut out = String::new();
+        out.push_str("Rsa(");
+        if let Some(v) = &self.pt {
+            out.push_str("pt = ");
+            out.push_str(&v.to_string());
+            out.push_str(", ");
+        }
+        if let Some(v) = &self.ct {
+            out.push_str("ct = ");
+            out.push_str(&v.to_string());
+            out.push_str(", ");
+        }
+        if let Some(v) = &self.n {
+            out.push_str("n = ");
+            out.push_str(&v.to_string());
+            out.push_str(", ");
+        }
+        if let Some(v) = &self.e {
+            out.push_str("e = ");
+            out.push_str(&v.to_string());
+            out.push_str(", ");
+        }
+        if let Some(v) = &self.d {
+            out.push_str("d = ");
+            out.push_str(&v.to_string());
+            out.push_str(", ");
+        }
+        if let Some(v) = &self.phi {
+            out.push_str("phi = ");
+            out.push_str(&v.to_string());
+            out.push_str(", ");
+        }
+        if let Some(v) = &self.factors {
+            out.push_str("factors = [");
+            for x in v {
+                out.push_str(&x.to_string());
+                out.push_str(", ");
+            }
+            out.remove(out.len()-1);
+            out.remove(out.len()-1);
+            out.push_str("], ");
+        }
+        if out.len() > 4 {
+            out.remove(out.len()-1);
+            out.remove(out.len()-1);
+        }
+        out.push_str(")");
+        out
+    }
+}
+
 
 impl Rsa {
     pub fn new() -> Rsa {
         Rsa {
+            pt: None,
+            ct: None,
             n: None,
             e: None,
             d: None,
             phi: None,
             factors: None,
+            autofill: true,
         }
     }
 
     pub fn fill(&mut self) {
         loop {
-            match (&self.n, &self.e, &self.d, &self.phi, &self.factors) {
-                (None, _, _, _, Some(factors)) => {
+            match (&self.pt, &self.ct, &self.n, &self.e, &self.d, &self.phi, &self.factors) {
+                (_, _, None, _, _, _, Some(factors)) => {
                     self.n = Some(factors.iter().product());
                 },
-                (_, _, _, None, Some(factors)) => {
+                (_, _, _, _, _, None, Some(factors)) => {
                     self.phi = Some(totient(factors));
                 },
-                (_, Some(e), None, Some(phi), _) => {
+                (_, _, _, Some(e), None, Some(phi), _) => {
                     self.d = Some(e.mod_pow(zz!(-1), phi));
                 },
-                (_, None, Some(d), Some(phi), _) => {
+                (_, _, _, None, Some(d), Some(phi), _) => {
                     self.e = Some(d.mod_pow(zz!(-1), phi));
+                },
+                (None, Some(ct), Some(n), Some(e), _, _, _) => {
+                    self.pt = Some(ct.mod_pow(e, n))
+                },
+                (Some(pt), None, Some(n), _, Some(d), _, _) => {
+                    self.ct = Some(pt.mod_pow(d, n))
                 },
                 _ => {
                     return;
@@ -127,11 +194,15 @@ impl Rsa {
                 factors.push(ZZ::from_bytes_be(&p.to_bytes_be()));
             }
             self.factors = Some(factors);
+
+            if self.autofill { self.fill(); }
         }
         else if pem.tag() == "RSA PUBLIC KEY" {
             let dec = RsaPublicKey::from_pkcs1_pem(pem_data).expect("Could not parse pem");
             self.n = Some(ZZ::from_bytes_be(&dec.n().to_bytes_be()));
             self.e = Some(ZZ::from_bytes_be(&dec.e().to_bytes_be()));
+
+            if self.autofill { self.fill(); }
         }
         else if pem.tag() == "CERTIFICATE" {
             let (_rem, cert) = X509Certificate::from_der(pem.contents()).expect("Failed to parse certificate");
@@ -140,6 +211,8 @@ impl Rsa {
 
             self.n = Some(ZZ::from_bytes_be(&rsa_pub_key.n().to_bytes_be()));
             self.e = Some(ZZ::from_bytes_be(&rsa_pub_key.e().to_bytes_be()));
+
+            if self.autofill { self.fill(); }
         }
         else {
             return Err(Error::CouldNotParse);
@@ -148,9 +221,9 @@ impl Rsa {
         Ok(())
     }
     pub fn enc(&mut self, ct: impl AsRef<ZZ>) -> Result<ZZ> {
-        let ct = ct.as_ref();
+        if self.autofill { self.fill(); }
 
-        self.fill();
+        let ct = ct.as_ref();
 
         match (&self.n, &self.e) {
             (Some(n), Some(e)) => {
@@ -162,9 +235,9 @@ impl Rsa {
         }
     }
     pub fn dec(&mut self, msg: impl AsRef<ZZ>) -> Result<ZZ> {
-        let msg = msg.as_ref();
+        if self.autofill { self.fill(); }
 
-        self.fill();
+        let msg = msg.as_ref();
 
         match (&self.n, &self.d) {
             (Some(n), Some(d)) => {
@@ -176,10 +249,13 @@ impl Rsa {
         }
     }
     pub fn wiener(&mut self) -> Result<()> {
+        if self.autofill { self.fill(); }
+
         match (&self.n, &self.e) {
             (Some(n), Some(e)) => {
                 let phi = wiener_attack(n, e)?;
                 self.phi = Some(phi);
+                if self.autofill { self.fill(); }
                 return Ok(());
             },
             _ => {
@@ -188,10 +264,13 @@ impl Rsa {
         }
     }
     pub fn fermat(&mut self) -> Result<()> {
+        if self.autofill { self.fill(); }
+
         match &self.n {
             Some(n) => {
                 let factors = fermat_attack(n);
                 self.factors = Some(vec![factors.0, factors.1]);
+                if self.autofill { self.fill(); }
                 return Ok(());
             },
             _ => {
@@ -200,12 +279,13 @@ impl Rsa {
         }
     }
     pub fn factorize(&mut self) {
-        if self.factors != None { 
-            return;
-        }
+        if self.autofill { self.fill(); }
+
         if let Some(n) = &self.n {
             if n.is_prime() {
                 self.factors = Some(vec![n.clone()]);
+
+                if self.autofill { self.fill(); }
                 return;
             }
         }
@@ -214,6 +294,8 @@ impl Rsa {
             let (p, q) = factor_with_phi_2(n, phi);
             if &(&p*&q) == n {
                 self.factors = Some(vec![p, q]);
+
+                if self.autofill { self.fill(); }
                 return;
             }
             else {
@@ -224,7 +306,36 @@ impl Rsa {
             let p = factor_with_d(n, e, d);
             let q = n/&p;
             self.factors = Some(vec![p, q]);
+            if self.autofill { self.fill(); }
             return;
+        }
+    }
+
+    pub fn same_pt(&mut self, rsa: &Rsa) {
+        if self.autofill { self.fill(); }
+
+        match (&self.ct, &self.e, &self.n) {
+            (Some(c1), Some(e1), Some(n1)) => {
+                match (&rsa.ct, &rsa.e, &rsa.n) {
+                    (Some(c2), Some(e2), Some(n2)) => {
+                        assert_eq!(n1, n2, "self.n != rsa.n");
+                        let (g, y, x) = egcd(e1, e2);
+                        let p1 = if x > 0 { c1.mod_pow(x, n1) }
+                                 else { mod_inv(c1, n1).expect("gcd(self.c, rsa.n) != 1").mod_pow(-x, n1) };
+                        let p2 = if y > 0 { c2.mod_pow(y, n2) }
+                                 else { mod_inv(c2, n2).expect("gcd(self.c, rsa.n) != 1").mod_pow(-y, n2) };
+                        if g != 1 {
+                            self.pt = Some(((p1*p2) % n2).nth_root(g).expect("Could not calculate nth_root of plaintexts"));
+                        }
+                        else {
+                            self.pt = Some((p1*p2) % n2);
+                        }
+                        if self.autofill { self.fill(); }
+                    },
+                    _ => {}
+                }
+            },
+            _ => {}
         }
     }
 }

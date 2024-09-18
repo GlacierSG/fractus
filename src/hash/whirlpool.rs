@@ -754,7 +754,6 @@ mod test {
     fn extend() {
         for i in 0..60 {
             for j in 0..60 {
-                dbg!(i, j);
                 let secret = b"b".repeat(i);
                 let hash = whirlpool::compute(&secret);
                 let added_msg = b"c".repeat(j);

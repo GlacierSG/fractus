@@ -10,7 +10,7 @@ version = "0.1.10"
 edition = "2021"
 
 [dependencies]
-amalie = "0.1.0"
+amalie = "0.1.2"
 colored = "2.1.0"
 ctrlc = "3.4.4"
 itertools = "0.13.0"
