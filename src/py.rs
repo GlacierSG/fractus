@@ -1,5 +1,5 @@
 use pyo3::prelude::*;
-use crate::hash::py::hash;
+use crate::hash::py::{hash, keccak_hash};
 use crate::cipher::py::cipher;
 use std::process;
 use crate::Error;
@@ -20,5 +20,6 @@ fn fractus(m: &Bound<'_, PyModule>) -> PyResult<()> {
 
     let _ = hash(&m);
     let _ = cipher(&m);
+    let _ = keccak_hash(&m);
     Ok(())
 }

@@ -53,9 +53,11 @@ impl Replacer {
 
 
 #[pyclass]
+#[derive(Clone)]
 pub struct Rsa {
     rsa: crate::Rsa
 }
+
 
 #[pymethods]
 impl Rsa {
@@ -274,6 +276,15 @@ impl Rsa {
     }
     fn same_pt(&mut self, rsa: &Rsa) -> PyResult<()> {
         self.rsa.same_pt(&rsa.rsa);
+        Ok(())
+    }
+    fn recover_n(&mut self, rsa: Vec<Bound<'_, PyAny>>) -> PyResult<()> {
+        let mut v = vec![];
+        for r in rsa {
+            let r: Rsa = r.extract()?;
+            v.push(r.rsa);
+        }
+        self.rsa.recover_n(&v)?;
         Ok(())
     }
 }

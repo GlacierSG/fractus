@@ -6,6 +6,7 @@ use rsa::{RsaPublicKey, RsaPrivateKey, pkcs1::{DecodeRsaPublicKey, DecodeRsaPriv
 use rsa::traits::{PublicKeyParts, PrivateKeyParts};
 use std::fmt;
 
+
 /// Factor using n and phi when n is factored into 2 primes
 pub fn factor_with_phi_2(n: &ZZ, phi: &ZZ) -> (ZZ, ZZ) {
     let t: ZZ = (n + 1u8 - phi).pow(zz!(2)) - 4*n;
@@ -69,7 +70,7 @@ pub fn fermat_attack(n: impl AsRef<ZZ>) -> (ZZ, ZZ) {
     return (&a - &b, &a + &b);
 }
 
-
+#[derive(Clone)]
 pub struct Rsa {
     pub pt: Option<ZZ>,
     pub ct: Option<ZZ>,
@@ -88,37 +89,37 @@ impl Rsa {
         let mut out = String::new();
         out.push_str("Rsa(");
         if let Some(v) = &self.pt {
-            out.push_str("pt = ");
+            out.push_str("pt=");
             out.push_str(&v.to_string());
             out.push_str(", ");
         }
         if let Some(v) = &self.ct {
-            out.push_str("ct = ");
+            out.push_str("ct=");
             out.push_str(&v.to_string());
             out.push_str(", ");
         }
         if let Some(v) = &self.n {
-            out.push_str("n = ");
+            out.push_str("n=");
             out.push_str(&v.to_string());
             out.push_str(", ");
         }
         if let Some(v) = &self.e {
-            out.push_str("e = ");
+            out.push_str("e=");
             out.push_str(&v.to_string());
             out.push_str(", ");
         }
         if let Some(v) = &self.d {
-            out.push_str("d = ");
+            out.push_str("d=");
             out.push_str(&v.to_string());
             out.push_str(", ");
         }
         if let Some(v) = &self.phi {
-            out.push_str("phi = ");
+            out.push_str("phi=");
             out.push_str(&v.to_string());
             out.push_str(", ");
         }
         if let Some(v) = &self.factors {
-            out.push_str("factors = [");
+            out.push_str("factors=[");
             for x in v {
                 out.push_str(&x.to_string());
                 out.push_str(", ");
@@ -337,5 +338,32 @@ impl Rsa {
             },
             _ => {}
         }
+    }
+
+    pub fn recover_n(&mut self, others: &Vec<Rsa>) -> Result<()> {
+        if let (Some(e), Some(pt), Some(ct)) = (&self.e, &self.pt, &self.ct) {
+            let mut n = ct - pt.pow(e);
+            for rsa in others {
+                if let (Some(e2), Some(pt2), Some(ct2)) = (&rsa.e, &rsa.pt, &rsa.ct) {
+                    if e != e2 { return Err(Error::InvalidState("self.e != other.e".to_string())); }
+                }
+                else {
+                    return Err(Error::InvalidState("missing other.e, other.pt or other.ct".to_string()));
+                }
+            }
+            for rsa in others {
+                if let (Some(e2), Some(pt2), Some(ct2)) = (&rsa.e, &rsa.pt, &rsa.ct) {
+                    n = gcd(n, ct2 - pt2.pow(e));
+                }
+            }
+            if n == 1 {
+                return Err(Error::NoResult);
+            }
+            self.n = Some(n);
+        }
+        else {
+            return Err(Error::InvalidState("missing self.e, self.pt or self.ct".to_string()));
+        }
+        Ok(())
     }
 }
