@@ -1,7 +1,7 @@
 [project]
 name = "fractus"
 dependencies = ["cffi>=1.16.0"]
-version = "0.1.11"
+version = "0.1.12"
 
 [build-system]
 requires = ["maturin>=1.0,<2.0"]
