@@ -80,7 +80,7 @@ pub struct Rsa {
     //pub pre_d: Option<Vec<ZZ>>, // pre computed d
     //pub qinv: Option<ZZ>,
     pub phi: Option<ZZ>,
-    pub factors: Option<Vec<ZZ>>,
+    pub factors: Vec<ZZ>,
     pub autofill: bool
 }
 
@@ -118,9 +118,9 @@ impl Rsa {
             out.push_str(&v.to_string());
             out.push_str(", ");
         }
-        if let Some(v) = &self.factors {
+        if self.factors.len() != 0 {
             out.push_str("factors=[");
-            for x in v {
+            for x in &self.factors {
                 out.push_str(&x.to_string());
                 out.push_str(", ");
             }
@@ -147,19 +147,37 @@ impl Rsa {
             e: None,
             d: None,
             phi: None,
-            factors: None,
+            factors: vec![],
             autofill: true,
+        }
+    }
+
+    pub fn guess(&mut self) {
+        self.fill();
+        match (&self.pt, &self.ct, &self.e, &self.n) {
+            (Some(pt), Some(ct), Some(e), Some(n)) => {
+                let v = (ct.pow(e) - pt).gcd(n);
+                if v != 1 {
+                    if v.is_prime() {
+                        self.factors.push(v);
+                    }
+                    else {
+                        // TODO: log that partial factor was found
+                    }
+                }
+            }
+            _ => {}
         }
     }
 
     pub fn fill(&mut self) {
         loop {
-            match (&self.pt, &self.ct, &self.n, &self.e, &self.d, &self.phi, &self.factors) {
-                (_, _, None, _, _, _, Some(factors)) => {
-                    self.n = Some(factors.iter().product());
+            match (&self.pt, &self.ct, &self.n, &self.e, &self.d, &self.phi, self.factors.len() != 0) {
+                (_, _, None, _, _, _, true) => {
+                    self.n = Some(self.factors.iter().product());
                 },
-                (_, _, _, _, _, None, Some(factors)) => {
-                    self.phi = Some(totient(factors));
+                (_, _, _, _, _, None, true) => {
+                    self.phi = Some(totient(&self.factors));
                 },
                 (_, _, _, Some(e), None, Some(phi), _) => {
                     self.d = Some(e.mod_pow(zz!(-1), phi));
@@ -194,7 +212,7 @@ impl Rsa {
             for p in primes {
                 factors.push(ZZ::from_bytes_be(&p.to_bytes_be()));
             }
-            self.factors = Some(factors);
+            self.factors = factors;
 
             if self.autofill { self.fill(); }
         }
@@ -270,7 +288,7 @@ impl Rsa {
         match &self.n {
             Some(n) => {
                 let factors = fermat_attack(n);
-                self.factors = Some(vec![factors.0, factors.1]);
+                self.factors = vec![factors.0, factors.1];
                 if self.autofill { self.fill(); }
                 return Ok(());
             },
@@ -284,7 +302,7 @@ impl Rsa {
 
         if let Some(n) = &self.n {
             if n.is_prime() {
-                self.factors = Some(vec![n.clone()]);
+                self.factors = vec![n.clone()];
 
                 if self.autofill { self.fill(); }
                 return;
@@ -294,7 +312,7 @@ impl Rsa {
         if let (Some(n), Some(phi)) = (&self.n, &self.phi) {
             let (p, q) = factor_with_phi_2(n, phi);
             if &(&p*&q) == n {
-                self.factors = Some(vec![p, q]);
+                self.factors = vec![p, q];
 
                 if self.autofill { self.fill(); }
                 return;
@@ -306,7 +324,7 @@ impl Rsa {
         if let (Some(n), Some(e), Some(d)) = (&self.n, &self.e, &self.d) {
             let p = factor_with_d(n, e, d);
             let q = n/&p;
-            self.factors = Some(vec![p, q]);
+            self.factors = vec![p, q];
             if self.autofill { self.fill(); }
             return;
         }
@@ -344,15 +362,7 @@ impl Rsa {
         if let (Some(e), Some(pt), Some(ct)) = (&self.e, &self.pt, &self.ct) {
             let mut n = ct - pt.pow(e);
             for rsa in others {
-                if let (Some(e2), Some(pt2), Some(ct2)) = (&rsa.e, &rsa.pt, &rsa.ct) {
-                    if e != e2 { return Err(Error::InvalidState("self.e != other.e".to_string())); }
-                }
-                else {
-                    return Err(Error::InvalidState("missing other.e, other.pt or other.ct".to_string()));
-                }
-            }
-            for rsa in others {
-                if let (Some(e2), Some(pt2), Some(ct2)) = (&rsa.e, &rsa.pt, &rsa.ct) {
+                if let (Some(pt2), Some(ct2)) = (&rsa.pt, &rsa.ct) {
                     n = gcd(n, ct2 - pt2.pow(e));
                 }
             }

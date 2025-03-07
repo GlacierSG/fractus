@@ -90,7 +90,7 @@ impl Rsa {
             rsa.phi = Some(phi);
         }
         if let Some(factors) = factors {
-            rsa.factors = Some(factors.iter().map(|x| { let x: ZZ = x.clone().into(); x }).collect());
+            rsa.factors = factors.iter().map(|x| { let x: ZZ = x.clone().into(); x }).collect();
         }
         Rsa{ rsa: rsa }
     }
@@ -222,27 +222,20 @@ impl Rsa {
     }
 
     #[getter]
-    fn get_factors(&self) -> Option<Vec<BigInt>> {
-        if let Some(factors) = &self.rsa.factors {
-            Some(factors.iter().map(|x| { let x: BigInt = x.clone().into(); x }).collect())
-        }
-        else {
-            None
-        }
+    fn get_factors(&self) -> Vec<BigInt> {
+        self.rsa.factors.iter().map(|x| { let x: BigInt = x.clone().into(); x }).collect()
     }
     #[setter]
-    fn set_factors(&mut self, value: Option<Vec<BigInt>>) {
-        if let Some(value) = value {
-            self.rsa.factors = Some(value.iter().map(|x| { let x: ZZ = x.clone().into(); x }).collect());
-        }
-        else {
-            self.rsa.factors = None;
-        }
+    fn set_factors(&mut self, value: Vec<BigInt>) {
+        self.rsa.factors = value.iter().map(|x| { let x: ZZ = x.clone().into(); x }).collect();
     }
     fn __str__(&self) -> String {
         self.rsa.to_string()
     }
-
+    
+    fn guess(&mut self) {
+        self.rsa.guess();
+    }
 
     fn from_pem(&mut self, inp: String) -> PyResult<()> {
         self.rsa.from_pem(&inp)?;
